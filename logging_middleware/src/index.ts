@@ -19,10 +19,20 @@ const TEST_SERVER_URL = 'http://20.207.122.201/evaluation-service/logs';
 // Helper to get access token from auth.json
 function getAccessToken(): string | null {
   try {
-    const authPath = path.resolve(process.cwd(), 'auth.json');
-    if (fs.existsSync(authPath)) {
-      const data = JSON.parse(fs.readFileSync(authPath, 'utf8'));
-      return data.access_token || null;
+    // Check current working directory
+    const cwdPath = path.resolve(process.cwd(), 'auth.json');
+    // Check parent directory (for npm workspaces where cwd is inside a subfolder)
+    const parentPath = path.resolve(process.cwd(), '../auth.json');
+    
+    const pathsToCheck = [cwdPath, parentPath];
+
+    for (const authPath of pathsToCheck) {
+      if (fs.existsSync(authPath)) {
+        const data = JSON.parse(fs.readFileSync(authPath, 'utf8'));
+        if (data.access_token) {
+          return data.access_token;
+        }
+      }
     }
   } catch (err) {
     console.error('Error reading auth.json', err);
@@ -45,12 +55,12 @@ export async function Log(
     console.warn('Log Warning: stack, level, and package must be in lower case.');
   }
 
-  // 2. Prepare payload
+  // 2. Prepare payload (truncate message to 48 chars maximum)
   const payload = {
     stack,
     level,
     package: pkg,
-    message,
+    message: message.length > 48 ? message.substring(0, 48) : message,
   };
 
   // 3. Get Auth Token
@@ -71,9 +81,8 @@ export async function Log(
       },
     });
 
-    if (response.status === 200) {
+    if (response.status === 200 || response.status === 201) {
       // Successfully logged to test server
-      // We can also console.log locally for debugging
       console.log(`[${level.toUpperCase()}] [${stack}] [${pkg}]: ${message} (LogID: ${response.data.logID})`);
     } else {
       console.error(`Log API Error: Unexpected status code ${response.status}`, response.data);

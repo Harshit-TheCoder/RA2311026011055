@@ -12,6 +12,18 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Root Route (Health Check)
+app.get('/', async (req: Request, res: Response) => {
+  await Log('backend', 'info', 'route', 'Health check accessed on root URL');
+  res.status(200).json({
+    status: 'online',
+    message: 'Welcome to the Afford Medicals Notification API',
+    endpoints: {
+      notify: 'POST /api/notify'
+    }
+  });
+});
+
 // Sample Route to send a notification
 app.post('/api/notify', async (req: Request, res: Response) => {
   try {

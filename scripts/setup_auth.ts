@@ -13,12 +13,12 @@ const AUTH_URL = 'http://20.207.122.201/evaluation-service/auth';
  * Please fill in your actual details here before running this script.
  */
 const USER_DETAILS = {
-  email: "YOUR_EMAIL@abc.edu",
-  name: "YOUR NAME",
-  mobileNo: "9999999999",
-  githubUsername: "YOUR_GITHUB_USERNAME",
-  rollNo: "YOUR_ROLL_NO",
-  accessCode: "xgAsNC" // Update this if your email provided a different code
+  email: "hh2044@srmist.edu.in",
+  name: "Harshit Harlalka",
+  mobileNo: "9903836974",
+  githubUsername: "Harshit-TheCoder",
+  rollNo: "RA2311026011055",
+  accessCode: "QkbpxH" // Update this if your email provided a different code
 };
 
 const AUTH_FILE_PATH = path.resolve(process.cwd(), 'auth.json');

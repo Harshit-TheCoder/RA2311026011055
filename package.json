@@ -11,7 +11,7 @@
     "build": "npm run build --workspaces",
     "start:backend": "npm start --workspace=notification_app_be",
     "start:scheduler": "npm start --workspace=vehicle_maintence_scheduler",
-    "setup-auth": "ts-node scripts/setup_auth.ts"
+    "setup-auth": "tsc scripts/setup_auth.ts --esModuleInterop --module commonjs --moduleResolution node && node scripts/setup_auth.js"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
