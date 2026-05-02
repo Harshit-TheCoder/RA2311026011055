@@ -10,6 +10,39 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -51,8 +84,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = __importDefault(require("axios"));
-var fs_1 = __importDefault(require("fs"));
-var path_1 = __importDefault(require("path"));
+var fs = __importStar(require("fs"));
+var path = __importStar(require("path"));
 // URLs provided in the screenshots
 var REGISTER_URL = 'http://20.207.122.201/evaluation-service/register';
 var AUTH_URL = 'http://20.207.122.201/evaluation-service/auth';
@@ -70,7 +103,7 @@ var USER_DETAILS = {
     rollNo: "RA2311026011055",
     accessCode: "QkbpxH" // Update this if your email provided a different code
 };
-var AUTH_FILE_PATH = path_1.default.resolve(process.cwd(), 'auth.json');
+var AUTH_FILE_PATH = path.resolve(process.cwd(), 'auth.json');
 function setup() {
     return __awaiter(this, void 0, void 0, function () {
         var clientID, clientSecret, regResponse, error_1, existingAuth, authPayload, authResponse, tokenData, saveData, error_2;
@@ -93,9 +126,9 @@ function setup() {
                 case 3:
                     error_1 = _b.sent();
                     console.log("Registration failed or already registered. Attempting to use existing credentials...");
-                    if (fs_1.default.existsSync(AUTH_FILE_PATH)) {
+                    if (fs.existsSync(AUTH_FILE_PATH)) {
                         try {
-                            existingAuth = JSON.parse(fs_1.default.readFileSync(AUTH_FILE_PATH, 'utf8'));
+                            existingAuth = JSON.parse(fs.readFileSync(AUTH_FILE_PATH, 'utf8'));
                             clientID = existingAuth.clientID;
                             clientSecret = existingAuth.clientSecret;
                         }
@@ -117,7 +150,7 @@ function setup() {
                     authResponse = _b.sent();
                     tokenData = authResponse.data;
                     saveData = __assign({ clientID: clientID, clientSecret: clientSecret }, tokenData);
-                    fs_1.default.writeFileSync(AUTH_FILE_PATH, JSON.stringify(saveData, null, 2));
+                    fs.writeFileSync(AUTH_FILE_PATH, JSON.stringify(saveData, null, 2));
                     console.log("Success! Fresh token saved to ".concat(AUTH_FILE_PATH, "."));
                     console.log("You can now run your backend applications.");
                     return [3 /*break*/, 7];
