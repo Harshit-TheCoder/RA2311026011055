@@ -73,46 +73,57 @@ var USER_DETAILS = {
 var AUTH_FILE_PATH = path_1.default.resolve(process.cwd(), 'auth.json');
 function setup() {
     return __awaiter(this, void 0, void 0, function () {
-        var clientID, clientSecret, regResponse, error_1, authPayload, authResponse, tokenData, saveData, error_2;
-        var _a, _b;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+        var clientID, clientSecret, regResponse, error_1, existingAuth, authPayload, authResponse, tokenData, saveData, error_2;
+        var _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
                     console.log("Starting Registration & Authentication process...");
-                    _c.label = 1;
+                    _b.label = 1;
                 case 1:
-                    _c.trys.push([1, 3, , 4]);
+                    _b.trys.push([1, 3, , 4]);
                     console.log("Registering with Evaluation Service...");
                     return [4 /*yield*/, axios_1.default.post(REGISTER_URL, USER_DETAILS)];
                 case 2:
-                    regResponse = _c.sent();
+                    regResponse = _b.sent();
                     clientID = regResponse.data.clientID;
                     clientSecret = regResponse.data.clientSecret;
                     console.log("Registration successful! Credentials received.");
                     return [3 /*break*/, 4];
                 case 3:
-                    error_1 = _c.sent();
-                    // If we fail registration, it might be because we're already registered.
-                    // However, the prompt says "You can register only once. Do not forget to save your clientID and clientSecret"
-                    console.error("Registration failed. Error:", ((_a = error_1 === null || error_1 === void 0 ? void 0 : error_1.response) === null || _a === void 0 ? void 0 : _a.data) || error_1.message);
-                    console.log("If you have already registered, please manually create an 'auth.json' file with your clientID and clientSecret and re-run this to get an access_token.");
-                    return [2 /*return*/];
+                    error_1 = _b.sent();
+                    console.log("Registration failed or already registered. Attempting to use existing credentials...");
+                    if (fs_1.default.existsSync(AUTH_FILE_PATH)) {
+                        try {
+                            existingAuth = JSON.parse(fs_1.default.readFileSync(AUTH_FILE_PATH, 'utf8'));
+                            clientID = existingAuth.clientID;
+                            clientSecret = existingAuth.clientSecret;
+                        }
+                        catch (e) {
+                            console.error("Failed to read existing auth.json");
+                        }
+                    }
+                    if (!clientID || !clientSecret) {
+                        console.error("Could not find clientID/clientSecret. Please ensure they are in auth.json.");
+                        return [2 /*return*/];
+                    }
+                    return [3 /*break*/, 4];
                 case 4:
-                    _c.trys.push([4, 6, , 7]);
-                    console.log("Obtaining Authorization Token...");
+                    _b.trys.push([4, 6, , 7]);
+                    console.log("Obtaining fresh Authorization Token...");
                     authPayload = __assign(__assign({}, USER_DETAILS), { clientID: clientID, clientSecret: clientSecret });
                     return [4 /*yield*/, axios_1.default.post(AUTH_URL, authPayload)];
                 case 5:
-                    authResponse = _c.sent();
+                    authResponse = _b.sent();
                     tokenData = authResponse.data;
                     saveData = __assign({ clientID: clientID, clientSecret: clientSecret }, tokenData);
                     fs_1.default.writeFileSync(AUTH_FILE_PATH, JSON.stringify(saveData, null, 2));
-                    console.log("Success! Token saved to ".concat(AUTH_FILE_PATH, "."));
-                    console.log("You can now run your backend applications, and the logging middleware will work.");
+                    console.log("Success! Fresh token saved to ".concat(AUTH_FILE_PATH, "."));
+                    console.log("You can now run your backend applications.");
                     return [3 /*break*/, 7];
                 case 6:
-                    error_2 = _c.sent();
-                    console.error("Authentication failed. Error:", ((_b = error_2 === null || error_2 === void 0 ? void 0 : error_2.response) === null || _b === void 0 ? void 0 : _b.data) || error_2.message);
+                    error_2 = _b.sent();
+                    console.error("Authentication failed. Error:", ((_a = error_2 === null || error_2 === void 0 ? void 0 : error_2.response) === null || _a === void 0 ? void 0 : _a.data) || error_2.message);
                     return [3 /*break*/, 7];
                 case 7: return [2 /*return*/];
             }

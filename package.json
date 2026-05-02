@@ -5,12 +5,15 @@
   "workspaces": [
     "logging_middleware",
     "notification_app_be",
-    "vehicle_maintence_scheduler"
+    "vehicle_maintence_scheduler",
+    "vehicle_scheduling"
   ],
   "scripts": {
     "build": "npm run build --workspaces",
     "start:backend": "npm start --workspace=notification_app_be",
     "start:scheduler": "npm start --workspace=vehicle_maintence_scheduler",
+    "start:scheduling": "npm start --workspace=vehicle_scheduling",
+    "start:priority-inbox": "ts-node notification_app_be/src/priority_inbox.ts",
     "setup-auth": "tsc scripts/setup_auth.ts --esModuleInterop --module commonjs --moduleResolution node && node scripts/setup_auth.js"
   },
   "devDependencies": {

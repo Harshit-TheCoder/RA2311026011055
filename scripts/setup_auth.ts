@@ -26,8 +26,8 @@ const AUTH_FILE_PATH = path.resolve(process.cwd(), 'auth.json');
 async function setup() {
   console.log("Starting Registration & Authentication process...");
 
-  let clientID: string;
-  let clientSecret: string;
+  let clientID: string | undefined;
+  let clientSecret: string | undefined;
 
   // 1. Try Registration
   try {
@@ -37,16 +37,26 @@ async function setup() {
     clientSecret = regResponse.data.clientSecret;
     console.log("Registration successful! Credentials received.");
   } catch (error: any) {
-    // If we fail registration, it might be because we're already registered.
-    // However, the prompt says "You can register only once. Do not forget to save your clientID and clientSecret"
-    console.error("Registration failed. Error:", error?.response?.data || error.message);
-    console.log("If you have already registered, please manually create an 'auth.json' file with your clientID and clientSecret and re-run this to get an access_token.");
-    return;
+    console.log("Registration failed or already registered. Attempting to use existing credentials...");
+    if (fs.existsSync(AUTH_FILE_PATH)) {
+      try {
+        const existingAuth = JSON.parse(fs.readFileSync(AUTH_FILE_PATH, 'utf8'));
+        clientID = existingAuth.clientID;
+        clientSecret = existingAuth.clientSecret;
+      } catch (e) {
+        console.error("Failed to read existing auth.json");
+      }
+    }
+    
+    if (!clientID || !clientSecret) {
+      console.error("Could not find clientID/clientSecret. Please ensure they are in auth.json.");
+      return;
+    }
   }
 
   // 2. Obtain Authorization Token
   try {
-    console.log("Obtaining Authorization Token...");
+    console.log("Obtaining fresh Authorization Token...");
     const authPayload = {
       ...USER_DETAILS,
       clientID,
@@ -64,8 +74,8 @@ async function setup() {
     };
 
     fs.writeFileSync(AUTH_FILE_PATH, JSON.stringify(saveData, null, 2));
-    console.log(`Success! Token saved to ${AUTH_FILE_PATH}.`);
-    console.log("You can now run your backend applications, and the logging middleware will work.");
+    console.log(`Success! Fresh token saved to ${AUTH_FILE_PATH}.`);
+    console.log("You can now run your backend applications.");
 
   } catch (error: any) {
     console.error("Authentication failed. Error:", error?.response?.data || error.message);
