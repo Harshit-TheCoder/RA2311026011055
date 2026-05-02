@@ -80,23 +80,23 @@ Detailed documentation for the Campus Notification System scaling strategy (Stag
 *(Place your Postman Evaluation API screenshots below to prove end-to-end functionality)*
 
 ### 1. Registration (`/register`)
-![Registration Screenshot](images\api_screenshots\registration\registration.png)
+![Registration Screenshot](images/api_screenshots/registration/registration.png)
 
 ### 2. Authentication (`/auth`)
-![Authentication Screenshot](images\api_screenshots\authentication\authentication.png)
+![Authentication Screenshot](images/api_screenshots/authentication/authentication.png)
 
 ### 3. Depots Payload (`/depots`)
-![Depots API](images\api_screenshots\depots\depots.png)
+![Depots API](images/api_screenshots/depots/depots.png)
 
 ### 4. Vehicles Payload (`/vehicles`)
-![Vehicles API](images\api_screenshots\vehicle\vehicle1.png)
-![Vehicles API](images\api_screenshots\vehicle\vehicle2.png)
-![Vehicles API](images\api_screenshots\vehicle\vehicle3.png)
+![Vehicles API](images/api_screenshots/vehicle/vehicle1.png)
+![Vehicles API](images/api_screenshots/vehicle/vehicle2.png)
+![Vehicles API](images/api_screenshots/vehicle/vehicle3.png)
 
 ### 5. Priority Inbox Results
 *(Screenshot of the terminal running `npm run start:priority-inbox`)*
-![Priority Inbox Output](placeholder_path/priority_inbox.png)
+![Priority Inbox Output](images/api_screenshots/priority_box/priority_box.png)
 
 ### 6. Notification (`/notification`)
-![Notifications API](images\api_screenshots\notification\notification1.png)
-![Notifications API](images\api_screenshots\notification\notification1.png)
+![Notifications API](images/api_screenshots/notification/notification1.png)
+![Notifications API](images/api_screenshots/notification/notification1.png)
