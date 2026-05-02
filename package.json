@@ -1,0 +1,21 @@
+{
+  "name": "afford-medicals-backend",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "logging_middleware",
+    "notification_app_be",
+    "vehicle_maintence_scheduler"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "start:backend": "npm start --workspace=notification_app_be",
+    "start:scheduler": "npm start --workspace=vehicle_maintence_scheduler",
+    "setup-auth": "ts-node scripts/setup_auth.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "ts-node": "^10.9.2",
+    "@types/node": "^20.12.7"
+  }
+}

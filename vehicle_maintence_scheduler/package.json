@@ -1,0 +1,16 @@
+{
+  "name": "vehicle_maintence_scheduler",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "node-cron": "^3.0.3",
+    "logging_middleware": "*"
+  },
+  "devDependencies": {
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^5.4.5"
+  }
+}
