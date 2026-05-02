@@ -11,15 +11,13 @@ interface Notification {
   Timestamp: string;
 }
 
-// Map types to numeric weights
-const TYPE_WEIGHT: Record<string, number> = {
+const weights: Record<string, number> = {
   Placement: 3,
   Result: 2,
   Event: 1
 };
 
-// Helper to get auth token
-function getAccessToken(): string | null {
+function getToken(): string | null {
   try {
     const paths = [
       path.resolve(process.cwd(), 'auth.json'),
@@ -35,31 +33,25 @@ function getAccessToken(): string | null {
   return null;
 }
 
-// Compare two notifications to determine which one is "greater" (should be prioritized higher)
-// Returns > 0 if a > b, < 0 if a < b, 0 if equal
-function comparePriority(a: Notification, b: Notification): number {
-  const weightA = TYPE_WEIGHT[a.Type] || 0;
-  const weightB = TYPE_WEIGHT[b.Type] || 0;
-  
-  if (weightA !== weightB) {
-    return weightA - weightB;
+function compare(a: Notification, b: Notification): number {
+  const wa = weights[a.Type] || 0;
+  const wb = weights[b.Type] || 0;
+
+  if (wa !== wb) {
+    return wa - wb;
   }
-  
-  // If weights are equal, newer timestamp wins
-  const timeA = new Date(a.Timestamp).getTime();
-  const timeB = new Date(b.Timestamp).getTime();
-  return timeA - timeB;
+
+  return new Date(a.Timestamp).getTime() - new Date(b.Timestamp).getTime();
 }
 
-// A simple Min-Heap for maintaining top N elements
 class MinHeap {
   private heap: Notification[] = [];
-  
+
   constructor(private maxSize: number) {}
 
-  private getParent(i: number) { return Math.floor((i - 1) / 2); }
-  private getLeft(i: number) { return 2 * i + 1; }
-  private getRight(i: number) { return 2 * i + 2; }
+  private parent(i: number) { return Math.floor((i - 1) / 2); }
+  private left(i: number) { return 2 * i + 1; }
+  private right(i: number) { return 2 * i + 2; }
 
   private swap(i: number, j: number) {
     const temp = this.heap[i];
@@ -67,83 +59,77 @@ class MinHeap {
     this.heap[j] = temp;
   }
 
-  private heapifyUp(index: number) {
-    let curr = index;
-    while (curr > 0 && comparePriority(this.heap[curr], this.heap[this.getParent(curr)]) < 0) {
-      this.swap(curr, this.getParent(curr));
-      curr = this.getParent(curr);
+  private heapifyUp(i: number) {
+    let curr = i;
+    while (curr > 0 && compare(this.heap[curr], this.heap[this.parent(curr)]) < 0) {
+      this.swap(curr, this.parent(curr));
+      curr = this.parent(curr);
     }
   }
 
-  private heapifyDown(index: number) {
-    let curr = index;
-    while (this.getLeft(curr) < this.heap.length) {
-      let smallest = this.getLeft(curr);
-      const right = this.getRight(curr);
-      
-      if (right < this.heap.length && comparePriority(this.heap[right], this.heap[smallest]) < 0) {
+  private heapifyDown(i: number) {
+    let curr = i;
+    while (this.left(curr) < this.heap.length) {
+      let smallest = this.left(curr);
+      const right = this.right(curr);
+
+      if (right < this.heap.length && compare(this.heap[right], this.heap[smallest]) < 0) {
         smallest = right;
       }
 
-      if (comparePriority(this.heap[curr], this.heap[smallest]) <= 0) break;
-      
+      if (compare(this.heap[curr], this.heap[smallest]) <= 0) break;
+
       this.swap(curr, smallest);
       curr = smallest;
     }
   }
 
-  public push(val: Notification) {
+  push(val: Notification) {
     if (this.heap.length < this.maxSize) {
       this.heap.push(val);
       this.heapifyUp(this.heap.length - 1);
     } else {
-      // If new value is strictly greater than the minimum element in the heap
-      if (comparePriority(val, this.heap[0]) > 0) {
+      if (compare(val, this.heap[0]) > 0) {
         this.heap[0] = val;
         this.heapifyDown(0);
       }
     }
   }
 
-  public getSortedElements(): Notification[] {
-    // Return a sorted copy (Highest priority first)
-    return [...this.heap].sort((a, b) => comparePriority(b, a));
+  getSorted(): Notification[] {
+    return [...this.heap].sort((a, b) => compare(b, a));
   }
 }
 
-async function runPriorityInbox() {
-  const token = getAccessToken();
+async function main() {
+  const token = getToken();
   if (!token) {
-    console.error("No access token found. Please run setup-auth.");
+    console.error("No token found. Run setup-auth first.");
     return;
   }
 
   try {
-    console.log("Fetching notifications from API...");
-    const response = await axios.get(API_URL, {
+    const res = await axios.get(API_URL, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    
-    const notifications: Notification[] = response.data.notifications;
-    console.log(`Received ${notifications.length} notifications. Processing Priority Inbox...`);
 
-    // MinHeap to keep top 10
-    const top10Heap = new MinHeap(10);
-    
-    for (const notif of notifications) {
-      top10Heap.push(notif);
+    const notifications: Notification[] = res.data.notifications;
+    const heap = new MinHeap(10);
+
+    for (const n of notifications) {
+      heap.push(n);
     }
 
-    const top10 = top10Heap.getSortedElements();
+    const top10 = heap.getSorted();
 
-    console.log("\n==== PRIORITY INBOX (TOP 10) ====\n");
+    console.log("\n--- Top 10 Priority Inbox ---\n");
     top10.forEach((n, i) => {
-      console.log(`${i + 1}. [${n.Type}] ${n.Message} (Time: ${n.Timestamp})`);
+      console.log(`${i + 1}. [${n.Type}] ${n.Message} (${n.Timestamp})`);
     });
-    
+
   } catch (err: any) {
-    console.error("Failed to fetch notifications:", err?.message);
+    console.error("Error fetching notifications:", err?.message);
   }
 }
 
-runPriorityInbox();
+main();

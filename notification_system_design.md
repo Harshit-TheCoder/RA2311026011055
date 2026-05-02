@@ -2,22 +2,17 @@
 
 ## Stage 1: API Design & Real-Time Mechanism
 
-### Core Actions
-1. **Fetch Notifications**: Retrieve all notifications for the logged-in user.
-2. **Mark as Read**: Mark a specific notification as read.
-3. **Mark All as Read**: Mark all notifications for the user as read.
+### Endpoints
 
-### REST API Endpoints
-
-#### 1. Fetch Notifications
-- **Endpoint**: `GET /api/v1/notifications`
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**:
+**1. Fetch Notifications**
+- `GET /api/v1/notifications`
+- Headers: `Authorization: Bearer <token>`
+- Response:
 ```json
 {
   "notifications": [
     {
-      "id": "uuid",
+      "id": "123",
       "type": "Placement",
       "message": "CSX Corporation hiring",
       "isRead": false,
@@ -27,27 +22,27 @@
 }
 ```
 
-#### 2. Mark Notification as Read
-- **Endpoint**: `PATCH /api/v1/notifications/:id/read`
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `204 No Content`
+**2. Mark Notification as Read**
+- `PATCH /api/v1/notifications/:id/read`
+- Headers: `Authorization: Bearer <token>`
+- Response: `204 No Content`
 
-#### 3. Mark All as Read
-- **Endpoint**: `PATCH /api/v1/notifications/read-all`
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `204 No Content`
+**3. Mark All as Read**
+- `PATCH /api/v1/notifications/read-all`
+- Headers: `Authorization: Bearer <token>`
+- Response: `204 No Content`
 
 ### Real-Time Mechanism
-For real-time notifications, **Server-Sent Events (SSE)** or **WebSockets** should be used. Since notifications are mostly unidirectional (Server -> Client), SSE is a lightweight, HTTP-native mechanism perfectly suited for this. The client connects to `GET /api/v1/notifications/stream` and the server pushes events continuously.
+For real-time delivery, I'd suggest using Server-Sent Events (SSE) or WebSockets. Since we're mostly just pushing data from the server to the client, SSE is simpler to set up and runs over standard HTTP.
 
 ---
 
 ## Stage 2: Database Storage & Schema
 
-### Persistent Storage Recommendation
-**PostgreSQL** (Relational Database) is highly recommended. Notifications are inherently structured, require strict integrity, and are often queried with complex filtering (e.g., finding specific types or unread status for specific users). PostgreSQL excels at concurrent read/write operations and advanced indexing.
+### DB Choice
+PostgreSQL is probably the best fit here. Notifications are structured data and we'll need to do a lot of querying and filtering (like checking read status for specific students).
 
-### Database Schema
+### Schema
 ```sql
 CREATE TABLE notifications (
     id UUID PRIMARY KEY,
@@ -59,14 +54,12 @@ CREATE TABLE notifications (
 );
 ```
 
-### Data Volume Problems & Solutions
-As data volume increases to millions of rows, querying unread notifications per student will become slow (Full Table Scans).
-**Solutions:**
-1. **Indexing**: Add a composite index on `(student_id, is_read, created_at DESC)`.
-2. **Partitioning**: Partition the `notifications` table by `created_at` (e.g., monthly). Older partitions can be archived or dropped.
-3. **Caching**: Use a Redis cache layer for unread counts and recent notifications.
+### Handling Data Volume
+As the table grows, full table scans will kill performance. We can fix this by:
+1. Adding a composite index on `(student_id, is_read, created_at DESC)`.
+2. Partitioning the table by month so older notifications don't slow down active queries.
 
-### Queries based on Stage 1
+### Queries
 ```sql
 -- Fetch Notifications
 SELECT * FROM notifications WHERE student_id = ? ORDER BY created_at DESC LIMIT 50;
@@ -82,15 +75,14 @@ UPDATE notifications SET is_read = true WHERE student_id = ? AND is_read = false
 
 ## Stage 3: Query Optimization
 
-### Query Analysis
-The query is **functionally accurate**, but it is **slow** because, without an index, the database must perform a "Full Table Scan" across all 5,000,000 rows to find unread notifications for student 1042, and then sort them in memory.
+### Why is it slow?
+The query works, but it's slow because there's no index. The DB has to scan all 5 million rows to find the unread ones for student 1042. 
 
-### Required Changes & Cost
-Adding a composite index is required.
-**Computation Cost**: A full table scan is O(N). With a composite B-Tree index, finding the records drops to O(log N).
-**Why indexing EVERY column is bad**: While adding indexes speeds up `SELECT` queries, it drastically slows down `INSERT` and `UPDATE` operations because the database must update every single index when a row changes. It also wastes massive amounts of disk storage.
+### The Fix
+We just need a composite index. 
+**Why not index every column?** Because every time you `INSERT` or `UPDATE` a row, the DB has to update all those indexes. It slows down writes massively and wastes disk space.
 
-### Optimized Query (Placement in last 7 days)
+### Optimized 7-Day Query
 ```sql
 SELECT DISTINCT student_id 
 FROM notifications 
@@ -103,64 +95,58 @@ WHERE notification_type = 'Placement'
 ## Stage 4: Fetch on Page Load Performance
 
 ### Solution
-The database is overwhelmed because every page load triggers a heavy DB query. The solution is to introduce a **Caching Layer** using **Redis**.
+If the DB is getting overwhelmed by page refreshes, we need a caching layer like Redis.
 
 ### Strategy
-1. **Cache Read-Through**: When a student loads a page, check Redis for a key like `notifications:unread:<studentID>`. If it exists, return it instantly.
-2. **Cache Invalidations**: If the cache misses, fetch from PostgreSQL and store the result in Redis with a TTL (Time-To-Live). When a new notification is generated, or a user marks one as read, the cache must be explicitly invalidated or updated.
+We can cache the unread counts and recent notifications in Redis (`notifications:unread:<studentID>`). When a user loads the page, we hit Redis first. If it's not there, we fetch from Postgres and save it to Redis.
 
 ### Tradeoffs
-- **Pros**: Sub-millisecond read times, protecting the database from repetitive queries, and vastly improved user experience.
-- **Cons**: Increased system complexity (cache invalidation is notoriously difficult), potential for stale data (eventual consistency), and additional infrastructure costs for hosting Redis.
+- **Pros**: Much faster response times and saves the DB from crashing under load.
+- **Cons**: Cache invalidation is tricky. You have to make sure Redis stays in sync when new notifications are created or marked as read.
 
 ---
 
 ## Stage 5: Bulk Notification (Notify All)
 
-### Shortcomings of the Pseudocode
-1. **Synchronous & Blocking**: The `for` loop executes sequentially. Sending 50,000 emails synchronously will block the main thread, causing request timeouts.
-2. **Partial Failures**: If the email API fails at index 200, the loop crashes, and 49,800 students never receive their notification.
-3. **Coupling**: The DB insert and Email sending happen synchronously in the same request cycle. They **should not happen together**. Database writes are fast, but third-party Email APIs are slow and volatile.
+### Problems with the Pseudocode
+1. The `for` loop is synchronous. Sending 50k emails in a single request loop will block the thread and eventually timeout.
+2. If the email API throws an error at student #200, the loop crashes and the remaining 49,800 students get nothing.
+3. DB inserts and external email APIs shouldn't be tied together in the same process.
 
-### Redesign (Event-Driven Architecture)
-We must decouple the heavy processing using a **Message Queue** (e.g., RabbitMQ or Kafka). The API simply creates an event, and background workers process it reliably with retries.
+### Redesign
+We should use an event-driven setup with a message queue like RabbitMQ or Kafka.
 
-### Revised Pseudocode
+### Better Pseudocode
 ```python
-function notify_all(student_ids: array, message: string):
-    # API immediately returns success
-    push_to_message_queue("bulk_notification_job", {student_ids, message})
+function notify_all(student_ids, message):
+    # Just push the job and return success immediately
+    push_to_queue("bulk_job", {student_ids, message})
 
-# --- Background Worker Process ---
+# Background worker
 function process_bulk_job(job):
-    # Chunking to process in parallel
+    # Split into smaller chunks
     for chunk in chunk_array(job.student_ids, 1000):
-        push_to_message_queue("process_chunk", {chunk, job.message})
+        push_to_queue("process_chunk", {chunk, job.message})
 
-function process_chunk(chunk_job):
-    # Batch insert to DB (extremely fast)
-    batch_save_to_db(chunk_job.chunk, chunk_job.message)
+function process_chunk(data):
+    batch_insert_db(data.chunk, data.message)
+    broadcast_websockets(data.chunk, data.message)
     
-    # Broadcast to connected WebSockets
-    broadcast_to_app(chunk_job.chunk, chunk_job.message)
-    
-    # Async email dispatch (allows independent retries on failure)
-    for student_id in chunk_job.chunk:
+    # Send emails async so failures can be retried individually
+    for id in data.chunk:
         try:
-            send_email_async(student_id, chunk_job.message)
-        except EmailAPIError:
-            push_to_message_queue_with_delay("retry_email", {student_id, chunk_job.message})
+            send_email_async(id, data.message)
+        except Error:
+            push_to_queue("retry_email", {id, data.message})
 ```
 
 ---
 
 ## Stage 6: Priority Inbox Implementation
 
-### Maintaining Top 10 Efficiently
-To maintain the top 10 efficiently as a continuous stream of new notifications arrive, we use a **Min-Heap (Priority Queue)** data structure of size `N = 10`. 
+### Maintaining Top 10
+To keep track of the top 10 notifications efficiently as new ones stream in, the best data structure is a Min-Heap (Priority Queue) with a fixed size of 10. 
 
-1. **Weighting Formula**: Priority is determined by checking Weight `(Placement > Result > Event)`. If weights are equal, we fallback to Recency.
-2. **O(log N) Efficiency**: When a new notification arrives:
-   - If the heap has less than 10 items, we push it in.
-   - If the heap has 10 items, we compare the new notification's priority with the **minimum** priority currently in the heap (the root). If the new priority is greater, we pop the root and insert the new notification. 
-   - This ensures we never sort the entire array (which is O(M log M)), reducing insertion time to **O(log 10)** which is extremely fast and scalable.
+- We calculate a score based on weight (`Placement` > `Result` > `Event`) and recency.
+- When a new notification comes in, if the heap is full, we compare it to the root (the lowest priority item in the top 10). If the new one is higher, we swap it out.
+- This gives us O(log 10) insertion time, which is basically O(1), instead of having to sort the entire list of notifications.

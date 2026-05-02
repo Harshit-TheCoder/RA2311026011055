@@ -2,23 +2,16 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// URLs provided in the screenshots
 const REGISTER_URL = 'http://20.207.122.201/evaluation-service/register';
 const AUTH_URL = 'http://20.207.122.201/evaluation-service/auth';
 
-/**
- * ==========================================
- * USER CONFIGURATION REQUIRED
- * ==========================================
- * Please fill in your actual details here before running this script.
- */
 const USER_DETAILS = {
   email: "hh2044@srmist.edu.in",
   name: "Harshit Harlalka",
   mobileNo: "9903836974",
   githubUsername: "Harshit-TheCoder",
   rollNo: "RA2311026011055",
-  accessCode: "QkbpxH" // Update this if your email provided a different code
+  accessCode: "QkbpxH" 
 };
 
 const AUTH_FILE_PATH = path.resolve(process.cwd(), 'auth.json');
@@ -29,7 +22,6 @@ async function setup() {
   let clientID: string | undefined;
   let clientSecret: string | undefined;
 
-  // 1. Try Registration
   try {
     console.log("Registering with Evaluation Service...");
     const regResponse = await axios.post(REGISTER_URL, USER_DETAILS);
@@ -47,14 +39,13 @@ async function setup() {
         console.error("Failed to read existing auth.json");
       }
     }
-    
+
     if (!clientID || !clientSecret) {
       console.error("Could not find clientID/clientSecret. Please ensure they are in auth.json.");
       return;
     }
   }
 
-  // 2. Obtain Authorization Token
   try {
     console.log("Obtaining fresh Authorization Token...");
     const authPayload = {
@@ -66,7 +57,6 @@ async function setup() {
     const authResponse = await axios.post(AUTH_URL, authPayload);
     const tokenData = authResponse.data;
 
-    // 3. Save to auth.json
     const saveData = {
       clientID,
       clientSecret,

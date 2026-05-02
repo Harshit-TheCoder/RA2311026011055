@@ -1,83 +1,65 @@
-# Afford Medicals - Backend Platform
+# Afford Medicals Backend
 
-An industry-grade, modular Node.js backend ecosystem designed to handle complex algorithmic scheduling, system health monitoring, and scalable notification processing. 
+This is the backend project for the Afford Medicals evaluation. It's a Node.js monorepo that handles vehicle maintenance scheduling and campus notifications.
 
-## 📖 Problem Statement
-The objective of this project is to build a robust backend architecture that seamlessly integrates multiple microservices while adhering to strict operational constraints. The platform requires solving complex mathematical optimization problems (specifically, a 0/1 Knapsack algorithm for vehicle maintenance scheduling) to maximize operational impact within strict resource constraints. Additionally, the system must interact securely with an external Evaluation API using a custom, centralized logging middleware that enforces strict payload schemas and character limits.
+## Problem Statement
+The goal is to build a modular backend that integrates a custom logging middleware, a vehicle scheduling algorithm (using 0/1 Knapsack), and a notification service. We need to interact with the evaluation APIs and ensure all logs follow a specific format and are under 48 characters.
 
-## 🎯 Requirements
-- **Monorepo Architecture**: Utilize npm workspaces to manage decoupled but interdependent backend services.
-- **Centralized Logging**: A strict middleware that intercepts system logs, ensures they do not exceed 48 characters, enforces specific log levels (`backend`, `error`, `handler`), and securely transmits them to an external evaluation server via Bearer token authentication.
-- **Algorithmic Optimization**: Implement a Dynamic Programming algorithm to schedule vehicle maintenance by maximizing the "Impact" score without exceeding the depot's "Mechanic Hours" budget.
-- **Scalable Notification Design**: Design a highly scalable Campus Notification Microservice capable of handling millions of records, real-time WebSocket delivery, RabbitMQ bulk processing, and O(log N) Priority Inbox sorting.
+## Requirements
+- Node.js monorepo setup (npm workspaces)
+- Centralized logging middleware that sends logs to the evaluation server with a Bearer token
+- DP algorithm to optimize vehicle maintenance based on mechanic hours and impact
+- System design for the Campus Notification microservice
 
-## 💻 Tech Stack
-- **Runtime**: Node.js
-- **Language**: TypeScript (Strict typing enabled)
-- **Framework**: Express.js (REST APIs)
-- **Task Scheduling**: `node-cron`
-- **HTTP Client**: Axios
-- **Architecture**: NPM Workspaces (Monorepo)
+## Tech Stack
+- Node.js & TypeScript
+- Express.js
+- node-cron
+- axios
 
-## 🏗️ System Architecture & Workflow
-The project is divided into distinct, purpose-built workspaces that communicate locally and via the network:
-1. **Bootstrapping (`setup_auth`)**: Before any service starts, the authentication script handshakes with the Evaluation API, registers the user, and securely caches short-lived JWT credentials into a local `auth.json` vault.
-2. **Middleware Interception**: All services import the local `logging_middleware` package. Standard `console.log` is strictly prohibited. The middleware attaches the `auth.json` token to every log event and broadcasts it to the evaluation server.
-3. **Microservice Execution**: 
-   - The **Notification App** boots an Express server to listen for incoming client requests.
-   - The **Maintenance Scheduler** boots a daemonized node-cron worker to run automated tasks every minute.
-   - The **Vehicle Scheduling** worker fetches external API constraints, runs the O(N*W) Knapsack matrix in memory, and submits the optimized schedule back via the middleware.
+## Architecture & Workflow
+The project is split into workspaces:
+1. **scripts/setup_auth.ts**: Gets the auth token from the evaluation API and saves it locally to `auth.json`.
+2. **logging_middleware**: A local package that handles all logs instead of standard console.log.
+3. **notification_app_be**: An Express server for notifications. Also contains the Priority Inbox logic.
+4. **vehicle_maintence_scheduler**: A cron job that runs every minute.
+5. **vehicle_scheduling**: The script that fetches depots/vehicles and runs the knapsack algorithm to maximize impact.
 
-## 📦 Features & Modules
-* **`logging_middleware`**: The central nervous system for auditability.
-* **`notification_app_be`**: Express server featuring a custom `MinHeap` data structure that maintains a real-time Top 10 Priority Inbox (Weight + Recency) in `O(log N)` time.
-* **`vehicle_maintence_scheduler`**: Background cron worker ensuring high availability.
-* **`vehicle_scheduling`**: DP algorithmic engine calculating optimal maintenance combinations.
-* **`notification_system_design.md`**: Theoretical architecture documentation for scaling databases to millions of users via PostgreSQL indexing, Redis caching, and Event-Driven architecture.
+## How to run the project
 
-## 🚀 Installation & Setup
-
-1. **Install Dependencies**
-   Run the following command at the root to install all workspace dependencies:
+1. **Install everything**
    ```bash
    npm install
    ```
 
-2. **Configure Authentication**
-   Open `scripts/setup_auth.ts` and ensure the `USER_DETAILS` object contains your accurate information.
-   Run the setup script to generate your `auth.json` credentials:
+2. **Setup Auth**
+   Make sure your details are in `scripts/setup_auth.ts`, then run:
    ```bash
    npm run setup-auth
    ```
 
-3. **Build the Project**
-   Compile all TypeScript workspaces simultaneously:
+3. **Build the typescript files**
    ```bash
    npm run build
    ```
 
-4. **Run the Services**
-   You can run each microservice independently via the root package scripts:
-   - **Notification Server**: `npm run start:backend`
-   - **Cron Scheduler**: `npm run start:scheduler`
-   - **Knapsack Algorithm**: `npm run start:scheduling`
-   - **Priority Inbox Output**: `npm run start:priority-inbox`
+4. **Start the services**
+   You can run these depending on what you want to test:
+   - `npm run start:backend`
+   - `npm run start:scheduler`
+   - `npm run start:scheduling`
+   - `npm run start:priority-inbox`
 
 ---
 
-## 📐 System Design Plan
-Detailed documentation for the Campus Notification System scaling strategy (Stages 1 through 6) is located in [notification_system_design.md](./notification_system_design.md). It includes:
-- REST API Schemas
-- PostgreSQL Schema & Composite Indexing Strategies
-- Redis Read-Through Caching concepts
-- Asynchronous RabbitMQ Worker pseudocode
-- Min-Heap algorithm documentation
+## System Design
+The answers and architecture plan for the 6 notification stages are in [notification_system_design.md](./notification_system_design.md).
 
 ---
 
-## 📸 Results & Screenshots
+## API Screenshots
 
-*(Place your Postman Evaluation API screenshots below to prove end-to-end functionality)*
+*(Postman test results for the evaluation APIs)*
 
 ### 1. Registration (`/register`)
 ![Registration Screenshot](images/api_screenshots/registration/registration.png)
@@ -94,7 +76,6 @@ Detailed documentation for the Campus Notification System scaling strategy (Stag
 ![Vehicles API](images/api_screenshots/vehicle/vehicle3.png)
 
 ### 5. Priority Inbox Results
-*(Screenshot of the terminal running `npm run start:priority-inbox`)*
 ![Priority Inbox Output](images/api_screenshots/priority_box/priority_box.png)
 
 ### 6. Notification (`/notification`)

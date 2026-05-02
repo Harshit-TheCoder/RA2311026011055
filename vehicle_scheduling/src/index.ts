@@ -17,13 +17,12 @@ interface Vehicle {
   Impact: number;
 }
 
-// Reuse the robust auth loading logic
 function getAccessToken(): string | null {
   try {
     const cwdPath = path.resolve(process.cwd(), 'auth.json');
     const parentPath = path.resolve(process.cwd(), '../auth.json');
     const rootPath = path.resolve(__dirname, '../../auth.json');
-    
+
     const pathsToCheck = [cwdPath, parentPath, rootPath];
 
     for (const authPath of pathsToCheck) {
@@ -33,15 +32,14 @@ function getAccessToken(): string | null {
       }
     }
   } catch (err) {
-    // Silently ignore to avoid console.log
+
   }
   return null;
 }
 
-// 0/1 Knapsack Algorithm using Dynamic Programming (2D Array for reconstruction)
 function optimizeScheduling(capacity: number, vehicles: Vehicle[]) {
   const n = vehicles.length;
-  // Initialize DP table
+
   const dp = Array.from({ length: n + 1 }, () => new Array(capacity + 1).fill(0));
 
   for (let i = 1; i <= n; i++) {
@@ -55,7 +53,6 @@ function optimizeScheduling(capacity: number, vehicles: Vehicle[]) {
     }
   }
 
-  // Reconstruct the selected tasks
   let res = dp[n][capacity];
   let w = capacity;
   const selectedTasks: string[] = [];
@@ -86,14 +83,13 @@ async function runVehicleScheduling() {
   }
 
   try {
-    // 1. Fetch Depots
+
     await Log('backend', 'info', 'service', 'Fetching depots data from API...');
     const depotsRes = await axios.get(DEPOTS_API, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const depots: Depot[] = depotsRes.data.depots;
 
-    // 2. Fetch Vehicles (Tasks)
     await Log('backend', 'info', 'service', 'Fetching vehicles data from API...');
     const vehiclesRes = await axios.get(VEHICLES_API, {
       headers: { Authorization: `Bearer ${token}` }
@@ -102,23 +98,21 @@ async function runVehicleScheduling() {
 
     await Log('backend', 'info', 'service', `Found ${depots.length} depots and ${vehicles.length} tasks.`);
 
-    // 3. Solve 0/1 Knapsack for each depot
     let totalMaxImpact = 0;
-    
+
     for (const depot of depots) {
       const result = optimizeScheduling(depot.MechanicHours, vehicles);
       totalMaxImpact += result.maxImpact;
-      
+
       await Log('backend', 'info', 'handler', `Depot ${depot.ID}: Max Impact ${result.maxImpact}, ${result.scheduledCount} tasks`);
     }
 
     await Log('backend', 'info', 'service', `Scheduling complete. Total Impact: ${totalMaxImpact}`);
-    
+
   } catch (error: any) {
     const errMsg = error.message || 'Unknown API Error';
     await Log('backend', 'error', 'service', `Optimization failed: ${errMsg}`);
   }
 }
 
-// Execute
 runVehicleScheduling();
