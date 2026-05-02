@@ -1,12 +1,12 @@
-import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
+import axios from "axios";
+import fs from "fs";
+import path from "path";
 
-const API_URL = 'http://20.207.122.201/evaluation-service/notifications';
+const API_URL = "http://20.207.122.201/evaluation-service/notifications";
 
 interface Notification {
   ID: string;
-  Type: 'Placement' | 'Result' | 'Event';
+  Type: "Placement" | "Result" | "Event";
   Message: string;
   Timestamp: string;
 }
@@ -14,19 +14,19 @@ interface Notification {
 const weights: Record<string, number> = {
   Placement: 3,
   Result: 2,
-  Event: 1
+  Event: 1,
 };
 
 function getToken(): string | null {
   try {
     const paths = [
-      path.resolve(process.cwd(), 'auth.json'),
-      path.resolve(process.cwd(), '../auth.json'),
-      path.resolve(__dirname, '../../auth.json')
+      path.resolve(process.cwd(), "auth.json"),
+      path.resolve(process.cwd(), "../auth.json"),
+      path.resolve(__dirname, "../../auth.json"),
     ];
     for (const p of paths) {
       if (fs.existsSync(p)) {
-        return JSON.parse(fs.readFileSync(p, 'utf8')).access_token;
+        return JSON.parse(fs.readFileSync(p, "utf8")).access_token;
       }
     }
   } catch (e) {}
@@ -49,9 +49,15 @@ class MinHeap {
 
   constructor(private maxSize: number) {}
 
-  private parent(i: number) { return Math.floor((i - 1) / 2); }
-  private left(i: number) { return 2 * i + 1; }
-  private right(i: number) { return 2 * i + 2; }
+  private parent(i: number) {
+    return Math.floor((i - 1) / 2);
+  }
+  private left(i: number) {
+    return 2 * i + 1;
+  }
+  private right(i: number) {
+    return 2 * i + 2;
+  }
 
   private swap(i: number, j: number) {
     const temp = this.heap[i];
@@ -61,7 +67,10 @@ class MinHeap {
 
   private heapifyUp(i: number) {
     let curr = i;
-    while (curr > 0 && compare(this.heap[curr], this.heap[this.parent(curr)]) < 0) {
+    while (
+      curr > 0 &&
+      compare(this.heap[curr], this.heap[this.parent(curr)]) < 0
+    ) {
       this.swap(curr, this.parent(curr));
       curr = this.parent(curr);
     }
@@ -73,7 +82,10 @@ class MinHeap {
       let smallest = this.left(curr);
       const right = this.right(curr);
 
-      if (right < this.heap.length && compare(this.heap[right], this.heap[smallest]) < 0) {
+      if (
+        right < this.heap.length &&
+        compare(this.heap[right], this.heap[smallest]) < 0
+      ) {
         smallest = right;
       }
 
@@ -110,7 +122,7 @@ async function main() {
 
   try {
     const res = await axios.get(API_URL, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     const notifications: Notification[] = res.data.notifications;
@@ -126,7 +138,6 @@ async function main() {
     top10.forEach((n, i) => {
       console.log(`${i + 1}. [${n.Type}] ${n.Message} (${n.Timestamp})`);
     });
-
   } catch (err: any) {
     console.error("Error fetching notifications:", err?.message);
   }

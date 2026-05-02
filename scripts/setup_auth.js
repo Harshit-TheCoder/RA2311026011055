@@ -86,22 +86,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = __importDefault(require("axios"));
 var fs = __importStar(require("fs"));
 var path = __importStar(require("path"));
-// URLs provided in the screenshots
 var REGISTER_URL = 'http://20.207.122.201/evaluation-service/register';
 var AUTH_URL = 'http://20.207.122.201/evaluation-service/auth';
-/**
- * ==========================================
- * USER CONFIGURATION REQUIRED
- * ==========================================
- * Please fill in your actual details here before running this script.
- */
 var USER_DETAILS = {
     email: "hh2044@srmist.edu.in",
     name: "Harshit Harlalka",
     mobileNo: "9903836974",
     githubUsername: "Harshit-TheCoder",
     rollNo: "RA2311026011055",
-    accessCode: "QkbpxH" // Update this if your email provided a different code
+    accessCode: "QkbpxH"
 };
 var AUTH_FILE_PATH = path.resolve(process.cwd(), 'auth.json');
 function setup() {
