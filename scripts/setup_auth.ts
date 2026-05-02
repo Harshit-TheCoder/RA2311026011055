@@ -1,6 +1,6 @@
 import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // URLs provided in the screenshots
 const REGISTER_URL = 'http://20.207.122.201/evaluation-service/register';
